@@ -1,14 +1,12 @@
-import {usePopularProducts, ProductCard, SearchInput, SearchProvider} from '@shopify/shop-minis-react'
+import { SearchInput, SearchProvider } from '@shopify/shop-minis-react'
 import { GiftFinder } from './components/GiftFinder'
-import { useState } from 'react'
 import { GiftBundle } from './types/giftFinder'
 
 // Import demo for browser console testing
 import './examples/giftFinderDemo'
 
 export function App() {
-  const {products} = usePopularProducts()
-  const [showGiftFinder, setShowGiftFinder] = useState(false)
+  
 
   const handleAddBundleToCart = async (bundle: GiftBundle) => {
     console.log('Adding bundle to cart:', bundle)
@@ -32,36 +30,13 @@ export function App() {
           <h1 className="text-2xl font-bold mb-2 text-center">
             Welcome to GiftFinder!
           </h1>
-          
-          {/* Gift Finder Toggle */}
-          <div className="mb-6 text-center">
-            <button
-              onClick={() => setShowGiftFinder(!showGiftFinder)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              {showGiftFinder ? 'Hide Gift Finder' : 'Find Perfect Gifts'}
-            </button>
-          </div>
-
-          {/* Gift Finder Component */}
-          {showGiftFinder && (
-            <div className="mb-8">
-              <GiftFinder
-                onAddBundleToCart={handleAddBundleToCart}
-                shopDomain="your-shop.myshopify.com"
-                storefrontAccessToken="your-storefront-token"
-              />
-            </div>
-          )}
-
-          <p className="text-base text-gray-600 mb-6 text-center">
-            {showGiftFinder ? 'Use the Gift Finder above or browse popular products below' : 'Popular products today'}
-          </p>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {products?.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          {/* Gift Finder Component - always visible */}
+          <div className="mb-8">
+            <GiftFinder
+              onAddBundleToCart={handleAddBundleToCart}
+              shopDomain="your-shop.myshopify.com"
+              storefrontAccessToken="your-storefront-token"
+            />
           </div>
         </div>
       </div>
