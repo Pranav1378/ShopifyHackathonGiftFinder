@@ -5,7 +5,8 @@
   "description": "A Shop Mini with WebView and Vite",
   "main": "index.tsx",
   "scripts": {
-    "start": "shop-minis dev"
+    "start": "shop-minis dev",
+    "demo": "node -e \"import('./src/examples/giftFinderDemo.ts').then(m => m.runAllDemos())\""
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.8",
