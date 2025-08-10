@@ -95,6 +95,9 @@ export interface SearchProductsResult {
   loading: boolean
   error: Error | null
   refetch: () => Promise<void>
+  // pagination controls from Minis SDK
+  hasNextPage?: boolean
+  fetchMore?: () => Promise<void>
 }
 
 // Hook-style method leveraging the Minis SDK product search
@@ -104,7 +107,7 @@ export function useSearchProducts(options: SearchProductsOptions): SearchProduct
   const spec = resolvedIndex >= 0 ? dataset?.[resolvedIndex] : undefined
   const built: BuiltSearchQuery = spec ? buildProductSearchQuery(spec) : {queryString: ''}
 
-  const {products, loading, error, refetch} = useProductSearch({
+  const {products, loading, error, refetch, hasNextPage, fetchMore} = useProductSearch({
     query: built.queryString,
     includeSensitive: false,
     skip: !built.queryString,
@@ -118,6 +121,8 @@ export function useSearchProducts(options: SearchProductsOptions): SearchProduct
     refetch: async () => {
       await refetch()
     },
+    hasNextPage,
+    fetchMore,
   }
 }
 
