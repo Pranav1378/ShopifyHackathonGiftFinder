@@ -6,7 +6,7 @@ import { SearchResults } from '../components/SearchResults'
 type Route =
   | { name: 'home' }
   | { name: 'questionnaire'; profileId?: string }
-  | { name: 'results'; llmOutput: unknown }
+  | { name: 'results'; llmOutput: unknown; profileId?: string }
 
 export function AppShell() {
   const [route, setRoute] = useState<Route>({name: 'home'})
@@ -20,16 +20,17 @@ export function AppShell() {
     <Questionnaire
       profileId={route.profileId}
       onBack={() => setRoute({name: 'home'})}
-      onSuccess={(llmOutput) => setRoute({ name: 'results', llmOutput })}
+      onSuccess={(llmOutput) => setRoute({ name: 'results', llmOutput, profileId: route.profileId })}
     />
   )
 
   if (route.name === 'results') return (
     <div className="pt-16 px-4">
-      <SearchResults llmOutput={route.llmOutput} />
-      <div className="mt-8 text-center">
-        <button className="text-sm text-blue-600" onClick={() => setRoute({name: 'home'})}>Back to start</button>
-      </div>
+      <SearchResults
+        llmOutput={route.llmOutput}
+        profileId={route.profileId}
+        onBackToQuestionnaire={() => setRoute({ name: 'questionnaire', profileId: route.profileId })}
+      />
     </div>
   )
 

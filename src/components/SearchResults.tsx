@@ -3,6 +3,9 @@ import { useSearchProducts } from '../search/search'
 import { Card, Button, Chip } from '../ui/Playground'
 import type { QuerySpec } from '../search/types'
 import { incrementMany, getCount } from '../services/likeInsights'
+import { useProfiles } from '../services/useProfiles'
+import { ArrowLeft } from 'lucide-react'
+import { gradientPrimary } from '../theme/tokens'
 
 // Parses LLM JSON like:
 // { "queryone": { "text": "tech gadgets under $50 holiday", "category": "electronics" }, ... }
@@ -152,13 +155,32 @@ function SingleQueryResults({ spec, budget }: { spec: QuerySpec; budget: number 
   )
 }
 
-export function SearchResults({ llmOutput }: { llmOutput: unknown }) {
+export function SearchResults({ llmOutput, profileId, onBackToQuestionnaire }: { llmOutput: unknown; profileId?: string; onBackToQuestionnaire?: () => void }) {
   const dataset = useMemo(() => buildDatasetFromLlmJson(llmOutput), [llmOutput])
   const [queryIndex, setQueryIndex] = useState(0)
+  const { listProfiles } = useProfiles()
+  const [profileName, setProfileName] = useState<string | null>(null)
 
   useEffect(() => {
     setQueryIndex(0)
   }, [dataset.map(d => d.spec.query).join('|')])
+
+  // Resolve profile name for the fixed badge (top-right)
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      if (!profileId) { setProfileName(null); return }
+      try {
+        const all = await listProfiles()
+        if (!mounted) return
+        const match = all?.find(p => p.id === profileId)
+        setProfileName(match?.displayName || null)
+      } catch {
+        if (mounted) setProfileName(null)
+      }
+    })()
+    return () => { mounted = false }
+  }, [profileId, listProfiles])
 
   if (!dataset || dataset.length === 0) {
     return <div className="text-xs text-gray-500">No queries to run.</div>
@@ -167,6 +189,20 @@ export function SearchResults({ llmOutput }: { llmOutput: unknown }) {
 
   return (
     <div className="space-y-4">
+      {/* Fixed back button (top-left) and profile name badge (top-right) */}
+      <div className="fixed top-3 left-3 z-20">
+        <button onClick={onBackToQuestionnaire} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-white/10 backdrop-blur px-3 py-1 text-xs font-semibold text-gray-900 dark:text-gray-100 border border-black/5 dark:border-white/10 shadow-sm">
+          <ArrowLeft className="size-3.5" />
+          Back
+        </button>
+      </div>
+      {profileName && (
+        <div className="fixed top-3 right-3 z-20">
+          <div className={['rounded-full px-3 py-1 text-xs font-semibold text-white shadow-md','bg-gradient-to-r', gradientPrimary].join(' ')}>
+            {profileName}
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex flex-wrap gap-1 items-center">
           {current.spec.categories.map((c) => (
