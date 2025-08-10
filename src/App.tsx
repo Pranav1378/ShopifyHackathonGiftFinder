@@ -1,6 +1,7 @@
 import { SearchInput, SearchProvider } from '@shopify/shop-minis-react'
-import { GiftFinder } from './components/GiftFinder'
 import { GiftBundle } from './types/giftFinder'
+import { QuickGiftPicker } from './components/QuickGiftPicker'
+import { GachaIntent } from './types/quickPicker'
 
 // Import demo for browser console testing
 import './examples/giftFinderDemo'
@@ -30,13 +31,11 @@ export function App() {
           <h1 className="text-2xl font-bold mb-2 text-center">
             Welcome to GiftFinder!
           </h1>
-          {/* Gift Finder Component - always visible */}
           <div className="mb-8">
-            <GiftFinder
-              onAddBundleToCart={handleAddBundleToCart}
-              shopDomain="your-shop.myshopify.com"
-              storefrontAccessToken="your-storefront-token"
-            />
+            <QuickGiftPicker onSubmit={(intent: GachaIntent) => {
+              // Navigate to results with params; for now, just log
+              console.log('GachaIntent', intent)
+            }} />
           </div>
         </div>
       </div>
