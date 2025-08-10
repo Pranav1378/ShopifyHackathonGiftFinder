@@ -9,12 +9,13 @@ import { callFal } from '../services/falClient'
 type Props = {
   profileId?: string
   onBack: () => void
+  onSuccess?: (llmOutput: unknown) => void
 }
 
 const INTERESTS = ['tech','travel','reading','cooking','gardening','fitness','music','fashion','gaming','home','art']
 const OCCASIONS = ['birthday','anniversary','thank you','holiday','just because']
 
-export default function Questionnaire({ profileId, onBack }: Props) {
+export default function Questionnaire({ profileId, onBack, onSuccess }: Props) {
   const [budget, setBudget] = useState<string>('50')
   const [occasion, setOccasion] = useState<string | undefined>(undefined)
   const [interests, setInterests] = useState<string[]>([])
@@ -36,6 +37,10 @@ export default function Questionnaire({ profileId, onBack }: Props) {
     try {
       const res = await callFal(payload)
       setOutput(res)
+      try {
+        const parsed = JSON.parse(res)
+        onSuccess?.(parsed)
+      } catch {}
     } catch (e: any) {
       setOutput(`{"error":"${e?.message || 'Fal call failed'}"}`)
     } finally {
