@@ -109,7 +109,7 @@ export default function RadianceQuickSetup({
             </div>
             <div className="w-[110px]"><label className="group relative block"><span className="absolute -top-2 left-3 px-1 text-[10px] bg-white/80 dark:bg-neutral-900/80 backdrop-blur rounded">USD</span><input inputMode="numeric" className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm shadow-inner outline-none focus:ring-2 focus:ring-indigo-500/50" value={String(budget)} onChange={(e) => setBudget(Number(e.target.value.replace(/[^0-9]/g, '')) || 5)} /></label></div>
           </div>
-          <div className="mt-3 flex items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 px-2 py-1"><Sparkles className="size-3" /> sweet‑spot: $40–$80</span></div>
+          {/* Removed sweet-spot helper per product requirement */}
         </div>
 
         <div className="mt-5 rounded-3xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur p-5 shadow-[0_2px_30px_rgba(0,0,0,0.04)]">
@@ -131,7 +131,7 @@ export default function RadianceQuickSetup({
           <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 p-1 shadow-xl">
             <div className="rounded-[14px] bg-white/70 dark:bg-neutral-900/60 backdrop-blur px-3 py-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-white"><PartyPopper className="size-4 text-indigo-600" /><span className="text-sm font-medium text-neutral-900 dark:text-neutral-50">{occasion ? `For ${occasion}` : 'Set an occasion'} · ${budget}</span></div>
-              <motion.button whileTap={{ scale: 0.98 }} onClick={onSubmit} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60">{loading ? 'Generating…' : 'Generate search JSON'}</motion.button>
+              <motion.button whileTap={{ scale: 0.98 }} onClick={onSubmit} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60">{loading ? 'Generating…' : 'Find Your Perfect Gift!'}</motion.button>
             </div>
           </div>
         </div>
