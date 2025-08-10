@@ -19,36 +19,40 @@ export function buildFalRequest(intent: GachaIntent, opts?: { model?: string; sy
   const systemPrompt =
     opts?.systemPrompt ??
     [
-      'You are a product keywording engine for a Shopify Shop Mini called Gift Gacha.',
-      'Given a recipient profile, budget, and a novelty (spice) level, you will return',
-      "a compact JSON object with search terms and filters for Shopify's product search.",
+      'You are a product query planner for a Shopify Shop Mini called Gift Gacha.',
+      'Given a budget, occasion, and optional high-level categories, return three short search queries (one per category).',
       '',
       'Rules:',
-      '- Output only JSON, no extra text, markdown, or explanations.',
-      '- Keep arrays small (max 6 items each), lowercase words unless proper nouns.',
-      '- "query" is a short free-text search term.',
-      '- "must" = product attributes/tags that MUST be present.',
-      '- "must_not" = tags to avoid.',
-      '- "nice_to_have" = helpful but optional tags.',
-      '- "categories" = high-level categories like "gift", "home", "tech", "apparel".',
+      '- Output only JSON, no extra text/markdown.',
+      '- Keep text concise; lowercase unless proper nouns.',
+      '- Each query must include { "text": string, "category": string }.',
+      '- Include the budget as a price hint in “text” (e.g., “$20” or “under $50”).',
+      '- If categories are provided, use them verbatim. Otherwise choose three sensible, distinct high-level categories.',
+      '- Return exactly three keys: queryone, querytwo, querythree.',
     ].join('\n')
 
+  const inputJson = {
+    budget: intent.budget,
+    occasion: intent.occasion ?? null,
+    hints: {
+      vibes: intent.vibes ?? [],
+      dislikes: intent.dislikes ?? [],
+      colors: intent.colors ?? [],
+    },
+  }
+
   const promptLines: string[] = []
-  promptLines.push('USER_INTENT_JSON:')
-  promptLines.push(JSON.stringify(intent, null, 2))
+  promptLines.push('INPUT_JSON:')
+  promptLines.push(JSON.stringify(inputJson, null, 2))
   promptLines.push('')
-  promptLines.push('Generate ONLY valid JSON matching this schema:')
+  promptLines.push('Generate ONLY valid JSON matching this exact shape:')
   promptLines.push('{')
-  promptLines.push('  "query": string,')
-  promptLines.push('  "must": string[],')
-  promptLines.push('  "must_not": string[],')
-  promptLines.push('  "nice_to_have": string[],')
-  promptLines.push('  "categories": string[]')
+  promptLines.push('  "queryone": { "text": string, "category": string },')
+  promptLines.push('  "querytwo": { "text": string, "category": string },')
+  promptLines.push('  "querythree": { "text": string, "category": string }')
   promptLines.push('}')
   promptLines.push('')
-  promptLines.push(`Include a price constraint like "under $${intent.budget}" inside "must".`)
-  promptLines.push('If the intent includes dislikes, map them to "must_not". Colors go to "nice_to_have".')
-  promptLines.push('Use occasion and vibes to inform "query" and tags. Limit arrays to at most 6 items.')
+  promptLines.push('Output JSON only.')
 
   const prompt = promptLines.join('\n')
 
