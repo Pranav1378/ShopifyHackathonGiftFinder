@@ -13,10 +13,15 @@ type Props = {
   onSwipeRight: (id: string) => void
   onSwipeLeft: (id: string) => void
   onEnd: () => void
+  onOpen?: (id: string) => void
+  index?: number
+  onAdvance?: () => void
 }
 
-export function TinderDeck({ cards, onSwipeRight, onSwipeLeft, onEnd }: Props) {
-  const [index, setIndex] = useState(0)
+export function TinderDeck({ cards, onSwipeRight, onSwipeLeft, onEnd, onOpen, index: controlledIndex, onAdvance }: Props) {
+  const [uncontrolledIndex, setUncontrolledIndex] = useState(0)
+  const isControlled = typeof controlledIndex === 'number'
+  const index = isControlled ? (controlledIndex as number) : uncontrolledIndex
   const current = cards[index]
   const next = cards[index + 1]
 
@@ -30,9 +35,13 @@ export function TinderDeck({ cards, onSwipeRight, onSwipeLeft, onEnd }: Props) {
     (dir: 'left' | 'right', id: string) => {
       if (dir === 'right') onSwipeRight(id)
       if (dir === 'left') onSwipeLeft(id)
-      setIndex((i) => i + 1)
+      if (isControlled) {
+        onAdvance?.()
+      } else {
+        setUncontrolledIndex((i) => i + 1)
+      }
     },
-    [onSwipeLeft, onSwipeRight]
+    [onSwipeLeft, onSwipeRight, isControlled, onAdvance]
   )
 
   if (!current) {
@@ -47,13 +56,13 @@ export function TinderDeck({ cards, onSwipeRight, onSwipeLeft, onEnd }: Props) {
         </div>
       )}
       <div className="absolute inset-0">
-        <DraggableCard card={current} onDismiss={handleDismiss} />
+        <DraggableCard card={current} onDismiss={handleDismiss} onOpen={onOpen} />
       </div>
     </div>
   )
 }
 
-function DraggableCard({ card, onDismiss }: { card: DeckCard; onDismiss: (dir: 'left' | 'right', id: string) => void }) {
+function DraggableCard({ card, onDismiss, onOpen }: { card: DeckCard; onDismiss: (dir: 'left' | 'right', id: string) => void; onOpen?: (id: string) => void }) {
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-300, 0, 300], [-12, 0, 12])
   const opacity = useTransform(x, [-300, 0, 300], [0.6, 1, 0.6])
@@ -90,6 +99,7 @@ function DraggableCard({ card, onDismiss }: { card: DeckCard; onDismiss: (dir: '
       dragElastic={0.15}
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={onDragEnd}
+      onTap={() => onOpen?.(card.id)}
     >
       <Card card={card} />
     </motion.div>

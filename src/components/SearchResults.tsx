@@ -4,7 +4,9 @@ import { mockShopifyProducts } from '../mocks/shopifyMockData'
 import { Button, Chip } from '../ui/Playground'
 import type { QuerySpec } from '../search/types'
 import { incrementMany, getCount } from '../services/likeInsights'
+import { useMemo as useReactMemo } from 'react'
 import { TinderDeck, DeckCard as TinderCardModel } from './ui/TinderDeck'
+import { addLike } from '../services/likesStore'
 import ErrorBoundary from './ui/ErrorBoundary'
 
 const USE_MINIS_HOOK = true
@@ -163,11 +165,11 @@ function SingleQueryResultsMinis({ spec, budget }: { spec: QuerySpec; budget: nu
     })
   }, [products, budget])
 
-  const [sampled, setSampled] = useState<any[]>([])
+  const sampled = useReactMemo(() => sample(filtered, Math.min(3, filtered.length)), [filtered])
+  const [cursor, setCursor] = useState(0)
   useEffect(() => {
-    const desired = Math.min(3, filtered.length)
-    setSampled(sample(filtered, desired))
-  }, [filtered])
+    setCursor(0)
+  }, [sampled.map(s => s?.id ?? s?.title ?? '').join('|')])
 
   // Ensure we end up with 3 items if possible by paging more
   useEffect(() => {
@@ -177,8 +179,11 @@ function SingleQueryResultsMinis({ spec, budget }: { spec: QuerySpec; budget: nu
   }, [sampled?.length, hasNextPage, fetchMore])
 
   const categories = spec.categories.length > 0 ? spec.categories : ['general']
-  const onLike = useCallback(() => {
+  const onLike = useCallback((card?: TinderCardModel) => {
     incrementMany(categories, 1)
+    if (card) {
+      addLike({ id: card.id, title: card.title, imageUrl: card.imageUrl, priceLabel: card.priceLabel })
+    }
   }, [categories])
   const onDislike = useCallback(() => {
     incrementMany(categories, -1)
@@ -204,11 +209,11 @@ function SingleQueryResultsMinis({ spec, budget }: { spec: QuerySpec; budget: nu
   }, [sampled])
   return (
     <div className="space-y-3">
-      <TinderDeck
+        <TinderDeck
         cards={toDeckCards}
-        onSwipeRight={() => {
-          console.log('Swiped right!');
-          onLike();
+          onSwipeRight={(id) => {
+            const card = toDeckCards.find(c => c.id === id)
+            onLike(card)
         }}
         onSwipeLeft={() => {
           console.log('Swiped left!');
@@ -217,6 +222,11 @@ function SingleQueryResultsMinis({ spec, budget }: { spec: QuerySpec; budget: nu
         onEnd={() => { 
           console.log('Deck finished!');
         }}
+          onOpen={(id) => {
+            console.log('Open product', id)
+          }}
+          index={cursor}
+          onAdvance={() => setCursor(c => Math.min(toDeckCards.length, c + 1))}
       />
       <div className="text-[10px] text-gray-500">
         {categories.map((c) => (
@@ -240,15 +250,14 @@ function SingleQueryResultsMock({ spec, budget }: { spec: QuerySpec; budget: num
     })
   }, [budget])
 
-  const [sampled, setSampled] = useState<any[]>([])
-  useEffect(() => {
-    const desired = Math.min(3, filtered.length)
-    setSampled(sample(filtered, desired))
-  }, [filtered])
+  const sampled = useReactMemo(() => sample(filtered, Math.min(3, filtered.length)), [filtered])
 
   const categories = spec.categories.length > 0 ? spec.categories : ['general']
-  const onLike = useCallback(() => {
+  const onLike = useCallback((card?: TinderCardModel) => {
     incrementMany(categories, 1)
+    if (card) {
+      addLike({ id: card.id, title: card.title, imageUrl: card.imageUrl, priceLabel: card.priceLabel })
+    }
   }, [categories])
   const onDislike = useCallback(() => {
     incrementMany(categories, -1)
@@ -273,9 +282,9 @@ function SingleQueryResultsMock({ spec, budget }: { spec: QuerySpec; budget: num
     <div className="space-y-3">
       <TinderDeck
         cards={toDeckCards}
-        onSwipeRight={() => {
-          console.log('Swiped right!');
-          onLike();
+        onSwipeRight={(id) => {
+          const card = toDeckCards.find(c => c.id === id)
+          onLike(card)
         }}
         onSwipeLeft={() => {
           console.log('Swiped left!');
@@ -283,6 +292,9 @@ function SingleQueryResultsMock({ spec, budget }: { spec: QuerySpec; budget: num
         }}
         onEnd={() => { 
           console.log('Deck finished!');
+        }}
+        onOpen={(id) => {
+          console.log('Open product', id)
         }}
       />
       <div className="text-[10px] text-gray-500">
