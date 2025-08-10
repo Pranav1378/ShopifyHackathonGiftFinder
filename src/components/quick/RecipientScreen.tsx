@@ -8,16 +8,27 @@ type RecipientScreenProps = {
 }
 
 export function RecipientScreen({ onContinue, onManageProfiles }: RecipientScreenProps) {
-  const { listProfiles, getLastUsed } = useProfiles()
+  const { listProfiles, getLastUsed, upsertProfiles } = useProfiles()
   const [profiles, setProfiles] = useState<RecipientProfile[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([listProfiles(), getLastUsed()]).then(([p, last]) => {
+    Promise.all([listProfiles(), getLastUsed()]).then(async ([p, last]) => {
+      if (!p || p.length === 0) {
+        const demo: RecipientProfile[] = [
+          { id: 'p_mom', displayName: 'Mom' },
+          { id: 'p_partner', displayName: 'Partner' },
+          { id: 'p_friend', displayName: 'Friend' },
+        ]
+        await upsertProfiles(demo)
+        setProfiles(demo)
+        setSelectedId(demo[0].id)
+        return
+      }
       setProfiles(p)
       if (last?.profileId) setSelectedId(last.profileId)
     })
-  }, [listProfiles, getLastUsed])
+  }, [listProfiles, getLastUsed, upsertProfiles])
 
   const ordered = useMemo(() => {
     return profiles

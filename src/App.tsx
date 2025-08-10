@@ -2,12 +2,14 @@ import { SearchInput, SearchProvider } from '@shopify/shop-minis-react'
 import { GiftBundle } from './types/giftFinder'
 import { QuickGiftPicker } from './components/QuickGiftPicker'
 import { GachaIntent } from './types/quickPicker'
+import React, { useState } from 'react'
+import { ResultsStub } from './components/ResultsStub'
 
 // Import demo for browser console testing
 import './examples/giftFinderDemo'
 
 export function App() {
-  
+  const [intent, setIntent] = useState<GachaIntent | null>(null)
 
   const handleAddBundleToCart = async (bundle: GiftBundle) => {
     console.log('Adding bundle to cart:', bundle)
@@ -32,10 +34,11 @@ export function App() {
             Welcome to GiftFinder!
           </h1>
           <div className="mb-8">
-            <QuickGiftPicker onSubmit={(intent: GachaIntent) => {
-              // Navigate to results with params; for now, just log
-              console.log('GachaIntent', intent)
-            }} />
+            {intent ? (
+              <ResultsStub intent={intent} onBack={() => setIntent(null)} />
+            ) : (
+              <QuickGiftPicker onSubmit={(i: GachaIntent) => setIntent(i)} />
+            )}
           </div>
         </div>
       </div>
