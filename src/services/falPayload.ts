@@ -25,8 +25,8 @@ export function buildFalRequest(intent: GachaIntent, opts?: { model?: string; sy
       'Rules:',
       '- Output only JSON, no extra text/markdown.',
       '- Keep text concise; lowercase unless proper nouns.',
-      '- Each query must include { "text": string, "category": string }.',
-      '- Include the budget as a price hint in “text” (e.g., “$20” or “under $50”).',
+      '- Do NOT include price text inside query "text". Provide a numeric price ceiling field instead.',
+      '- Each query object must include: { "text": string, "category": string, "max_price": number } where max_price is the shopper budget (or a sensible ceiling in USD).',
       '- If categories are provided, use them verbatim. Otherwise choose three sensible, distinct high-level categories.',
       '- Return exactly three keys: queryone, querytwo, querythree.',
     ].join('\n')
@@ -47,9 +47,9 @@ export function buildFalRequest(intent: GachaIntent, opts?: { model?: string; sy
   promptLines.push('')
   promptLines.push('Generate ONLY valid JSON matching this exact shape:')
   promptLines.push('{')
-  promptLines.push('  "queryone": { "text": string, "category": string },')
-  promptLines.push('  "querytwo": { "text": string, "category": string },')
-  promptLines.push('  "querythree": { "text": string, "category": string }')
+  promptLines.push('  "queryone": { "text": string, "category": string, "max_price": number },')
+  promptLines.push('  "querytwo": { "text": string, "category": string, "max_price": number },')
+  promptLines.push('  "querythree": { "text": string, "category": string, "max_price": number }')
   promptLines.push('}')
   promptLines.push('')
   promptLines.push('Output JSON only.')
