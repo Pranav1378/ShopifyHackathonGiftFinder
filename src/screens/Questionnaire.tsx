@@ -1,8 +1,10 @@
 import React from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Cake, Gift, Heart, PartyPopper, Plane, Sparkles, Music, Dumbbell, Gamepad2, Book, ChefHat, Home, Palette, Trees, Shirt, Headphones, Camera } from 'lucide-react'
+import { Cake, Gift, Heart, PartyPopper, Plane, Sparkles, Music, Dumbbell, Gamepad2, Book, ChefHat, Home, Palette, Trees, Shirt, Headphones, Camera, ArrowLeft } from 'lucide-react'
 import { callFal as defaultCallFal } from '../services/falClient'
 import { buildFalRequest as defaultBuildFalRequest } from '../services/falPayload'
+import { useProfiles } from '../services/useProfiles'
+import { gradientPrimary } from '../theme/tokens'
 
 export default function RadianceQuickSetup({
   profileId,
@@ -19,6 +21,10 @@ export default function RadianceQuickSetup({
   buildFalRequest?: (intent: any) => any;
   startingBudget?: number;
 }) {
+  // Resolve the profile's display name (from prior screen) to show in top-right
+  const { listProfiles } = useProfiles()
+  const [profileName, setProfileName] = React.useState<string | null>(null)
+
   const [budget, setBudget] = React.useState<number>(startingBudget)
   const [occasion, setOccasion] = React.useState<string | undefined>()
   const [interests, setInterests] = React.useState<string[]>([])
@@ -63,6 +69,23 @@ export default function RadianceQuickSetup({
     try { const raw = localStorage.getItem('radiance-setup'); if (raw) { const v = JSON.parse(raw); if (v?.budget) setBudget(v.budget); if (v?.occasion) setOccasion(v.occasion); if (Array.isArray(v?.interests)) setInterests(v.interests) } } catch {}
   }, [])
 
+  // Load profile name once, based on profileId
+  React.useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      if (!profileId) { setProfileName(null); return }
+      try {
+        const all = await listProfiles()
+        if (!mounted) return
+        const match = all?.find(p => p.id === profileId)
+        setProfileName(match?.displayName || null)
+      } catch {
+        if (mounted) setProfileName(null)
+      }
+    })()
+    return () => { mounted = false }
+  }, [profileId, listProfiles])
+
   const onSubmit = async () => {
     if (!callFal || !buildFalRequest) return
     const intent = { profileId: profileId || 'new_profile', budget, occasion, vibes: interests }
@@ -79,11 +102,29 @@ export default function RadianceQuickSetup({
 
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-gradient-to-b from-white via-indigo-50/40 to-purple-50 dark:from-neutral-900 dark:via-neutral-900/60 dark:to-neutral-950">
+      {/* Fixed back button aligned with profile tag (top-left) */}
+      <div className="fixed top-3 left-3 z-20">
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-white/10 backdrop-blur px-3 py-1 text-xs font-semibold text-gray-900 dark:text-gray-100 border border-black/5 dark:border-white/10 shadow-sm">
+          <ArrowLeft className="size-3.5" />
+          Back
+        </button>
+      </div>
+      {/* Persistent profile name tag (top-right) */}
+      {profileName && (
+        <div className="fixed top-3 right-3 z-20">
+          <div className={[
+            'rounded-full px-3 py-1 text-xs font-semibold text-white shadow-md',
+            'bg-gradient-to-r',
+            gradientPrimary,
+          ].join(' ')}>
+            {profileName}
+          </div>
+        </div>
+      )}
       <motion.div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-br from-fuchsia-400/40 to-indigo-400/40 blur-3xl" animate={{ y: [0, 10, -6, 0], x: [0, -4, 6, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }} />
       <motion.div aria-hidden className="pointer-events-none absolute bottom-[-80px] right-[-80px] h-96 w-96 rounded-full bg-gradient-to-tr from-sky-400/40 to-violet-400/40 blur-3xl" animate={{ y: [0, -8, 4, 0], x: [0, 6, -6, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }} />
 
       <div className="relative pt-6 px-4 max-w-xl mx-auto">
-        <button onClick={onBack} className="text-sm text-blue-600 hover:underline">Back</button>
         {/* subtle animated title */}
         <TitleBlock />
         <div className="mt-6">
