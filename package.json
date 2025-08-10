@@ -22,5 +22,8 @@
     "@shopify/shop-minis-react": "0.0.30",
     "react": "18.2.0",
     "react-dom": "18.2.0"
+  },
+  "overrides": {
+    "graphql": "16.8.1"
   }
 }
