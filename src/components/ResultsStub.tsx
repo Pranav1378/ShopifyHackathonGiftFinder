@@ -1,23 +1,38 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { GachaIntent } from '../types/quickPicker'
 import { buildFalRequest } from '../services/falPayload'
+import { callFal } from '../services/falClient'
 
 export function ResultsStub({ intent, onBack }: { intent: GachaIntent; onBack: () => void }) {
-  const falPayload = buildFalRequest(intent)
-  const json = JSON.stringify(falPayload, null, 2)
+  const payload = useMemo(() => buildFalRequest(intent), [intent])
+  const [output, setOutput] = useState<string>('')
+  const [error, setError] = useState<string>('')
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(json)
-    } catch {}
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const res = await callFal(payload)
+        if (!mounted) return
+        setOutput(res)
+      } catch (e: any) {
+        if (!mounted) return
+        setError(e?.message ?? 'Fal call failed')
+      }
+    })()
+    return () => { mounted = false }
+  }, [payload])
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(output) } catch {}
   }
 
-  const downloadJson = () => {
-    const blob = new Blob([json], { type: 'application/json' })
+  const download = () => {
+    const blob = new Blob([output], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'fal-request.json'
+    a.download = 'gacha-output.json'
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -28,20 +43,19 @@ export function ResultsStub({ intent, onBack }: { intent: GachaIntent; onBack: (
         <button className="text-sm text-blue-600" onClick={onBack}>Back</button>
       </div>
       <div className="rounded-2xl shadow-sm p-4 bg-white border">
-        <div className="text-sm text-gray-600 mb-2">Submitted intent</div>
-        <pre className="text-xs whitespace-pre-wrap break-all">{JSON.stringify(intent, null, 2)}</pre>
-      </div>
-      <div className="mt-4 rounded-2xl shadow-sm p-4 bg-white border">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm text-gray-600">Fal request payload</div>
+          <div className="text-sm text-gray-600">Output JSON</div>
           <div className="flex gap-2">
-            <button className="text-sm text-blue-600" onClick={copyToClipboard}>Copy</button>
-            <button className="text-sm text-blue-600" onClick={downloadJson}>Download</button>
+            <button className="text-sm text-blue-600" onClick={copy}>Copy</button>
+            <button className="text-sm text-blue-600" onClick={download}>Download</button>
           </div>
         </div>
-        <pre className="text-xs whitespace-pre-wrap break-all">{json}</pre>
+        {error ? (
+          <div className="text-sm text-red-600">{error}</div>
+        ) : (
+          <pre className="text-xs whitespace-pre-wrap break-all">{output || '{\n  "status": "loading..."\n}'}</pre>
+        )}
       </div>
-      <div className="mt-4 text-sm text-gray-500">This is a stub. Next step: call your LLM service with this payload.</div>
     </div>
   )
 }
