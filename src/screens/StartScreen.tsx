@@ -43,9 +43,10 @@ export default function StartScreen({ onCreate, onOpen }: Props) {
       let seed = raw || []
       if (seed.length === 0) {
         seed = [
-          { id: 'p_mom', displayName: 'Mom', styleTags: ['classic', 'neutral'], favColors: ['earth tones'], dislikedTags: ['strong fragrance'] },
-          { id: 'p_friend', displayName: 'Friend', styleTags: ['modern', 'minimal'], favColors: ['blue', 'black'], dislikedTags: ['clutter'] },
-          { id: 'p_gf', displayName: 'Girlfriend', styleTags: ['luxury', 'colorful'], favColors: ['pastels', 'pink'], dislikedTags: ['synthetic'] },
+          { id: 'p_alaap', displayName: 'Alaap' },
+          { id: 'p_pranav', displayName: 'Pranav' },
+          { id: 'p_mihir', displayName: 'Mihir' },
+          { id: 'p_akshay', displayName: 'Akshay' },
         ] as any
         try { await upsertProfiles(seed as any) } catch {}
       }
@@ -101,9 +102,9 @@ export default function StartScreen({ onCreate, onOpen }: Props) {
           </GradientButton>
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => (selected ? handleOpen() : setSheetOpen(true))}
+            onClick={() => setSheetOpen(true)}
                 className="w-full rounded-2xl border border-black/10 dark:border-white/15 bg-white/90 dark:bg-white/5 backdrop-blur px-4 py-3 text-base font-semibold text-gray-900 dark:text-gray-100 shadow-sm"
-            aria-label="Add to existing profile"
+            aria-label="Open existing profile"
           >
             Add to existing profile
           </motion.button>
@@ -113,7 +114,16 @@ export default function StartScreen({ onCreate, onOpen }: Props) {
       </div>
 
       {/* Existing profile picker */}
-      <ProfilePickerSheet open={sheetOpen} onClose={() => setSheetOpen(false)} items={profiles} onSelect={(id) => setSelectedId(id)} />
+      <ProfilePickerSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        items={profiles}
+        onSelect={async (id) => {
+          setSelectedId(id)
+          try { await setLastUsed({ profileId: id }) } catch {}
+          onOpen(id)
+        }}
+      />
     </div>
   )
 }
