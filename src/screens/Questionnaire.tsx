@@ -1,5 +1,5 @@
 import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Cake, Gift, Heart, PartyPopper, Plane, Sparkles, Music, Dumbbell, Gamepad2, Book, ChefHat, Home, Palette, Trees, Shirt, Headphones, Camera } from 'lucide-react'
 import { callFal as defaultCallFal } from '../services/falClient'
 import { buildFalRequest as defaultBuildFalRequest } from '../services/falPayload'
@@ -84,10 +84,8 @@ export default function RadianceQuickSetup({
 
       <div className="relative pt-6 px-4 max-w-xl mx-auto">
         <button onClick={onBack} className="text-sm text-blue-600 hover:underline">Back</button>
-        <div className="mt-6 text-center">
-          <motion.h1 className="text-3xl font-extrabold tracking-tight" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>Quick setup</motion.h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Budget, occasion, and interests — that’s it.</p>
-        </div>
+        {/* subtle animated title */}
+        <TitleBlock />
         <div className="mt-6">
           <div className="h-2.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
             <motion.div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500" initial={false} animate={{ width: `${progress}%` }} transition={{ type: 'spring', stiffness: 110, damping: 20 }} />
@@ -131,7 +129,7 @@ export default function RadianceQuickSetup({
           <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 p-1 shadow-xl">
             <div className="rounded-[14px] bg-white/70 dark:bg-neutral-900/60 backdrop-blur px-3 py-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-white"><PartyPopper className="size-4 text-indigo-600" /><span className="text-sm font-medium text-neutral-900 dark:text-neutral-50">{occasion ? `For ${occasion}` : 'Set an occasion'} · ${budget}</span></div>
-              <motion.button whileTap={{ scale: 0.98 }} onClick={onSubmit} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60">{loading ? 'Generating…' : 'Find Your Perfect Gift!'}</motion.button>
+              <motion.button whileTap={{ scale: 0.98 }} onClick={onSubmit} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60">{loading ? 'Generating…' : 'Your Next Big Gift!'}</motion.button>
             </div>
           </div>
         </div>
@@ -146,5 +144,23 @@ function Chip({ label, selected, onClick, icon }: { label: string; selected?: bo
       {icon}
       <span className="capitalize">{label}</span>
     </motion.button>
+  )
+}
+
+function TitleBlock() {
+  const prefersReduced = useReducedMotion()
+  return (
+    <div className="text-center mb-6">
+      <motion.h1
+        className="text-[clamp(28px,4vw,36px)] font-extrabold bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
+        style={{ backgroundSize: '200% 100%' }}
+        animate={prefersReduced ? undefined : { backgroundPosition: ['0% 50%','100% 50%','0% 50%'] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        Quick setup
+      </motion.h1>
+      <p className="text-sm text-gray-600 mt-1 dark:text-gray-300">Budget, occasion, and interests — that’s it</p>
+      <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500/70 opacity-80" />
+    </div>
   )
 }
