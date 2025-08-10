@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Button, Chip, Card, Input, Toast } from '../../ui/Playground'
 import { RecipientProfile, GachaIntent } from '../../types/quickPicker'
 import { useProfiles } from '../../services/useProfiles'
 
@@ -85,30 +86,18 @@ export function DetailsScreen({ profile, onSpin, onRefine }: DetailsScreenProps)
     <div className="pt-4 pb-6 px-4 safe-area-inset-bottom">
       <h2 className="text-lg font-semibold mb-4">Budget & vibe</h2>
       <div className="space-y-4">
-        <div className="rounded-2xl shadow-sm p-3 bg-white border">
+        <Card>
           <div className="mb-2 text-sm font-medium">Budget</div>
           <div className="flex flex-wrap gap-2">
             {BUDGET_PRESETS.map((b) => (
-              <button key={b} className={`px-3 h-10 rounded-full border ${!useCustom && budget === b ? 'bg-blue-600 text-white' : 'bg-white'}`} aria-pressed={!useCustom && budget === b} onClick={() => handleBudgetSelect(b)}>{`$${b}`}</button>
+              <Chip key={b} className={`${!useCustom && budget === b ? 'bg-blue-600 text-white' : ''}`} aria-pressed={!useCustom && budget === b} onClick={() => handleBudgetSelect(b)}>{`$${b}`}</Chip>
             ))}
-            <button className={`px-3 h-10 rounded-full border ${useCustom ? 'bg-blue-600 text-white' : 'bg-white'}`} aria-pressed={useCustom} onClick={() => handleBudgetSelect('custom')}>Custom</button>
+            <Chip className={`${useCustom ? 'bg-blue-600 text-white' : ''}`} aria-pressed={useCustom} onClick={() => handleBudgetSelect('custom')}>Custom</Chip>
           </div>
           {useCustom && (
             <div className="mt-3">
               <label className="text-sm">Custom amount</label>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="text-gray-600">$</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={customBudget}
-                  onChange={(e: any) => setCustomBudget(e.target.value)}
-                  className="border rounded-md px-2 py-2 w-28"
-                  min={10}
-                  max={300}
-                  step={5}
-                />
-              </div>
+              <Input className="mt-1 w-28" prefix="$" type="number" inputMode="numeric" value={customBudget} onChange={(e: any) => setCustomBudget(e.target.value)} min={10} max={300} step={5} />
               <div className="mt-3">
                 <div className="relative">
                   <input
@@ -133,26 +122,26 @@ export function DetailsScreen({ profile, onSpin, onRefine }: DetailsScreenProps)
           {!useCustom && (
             <div className="text-xs text-gray-600 mt-2">Target: ${budget}</div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-2xl shadow-sm p-3 bg-white border">
+        <Card>
           <div className="mb-2 text-sm font-medium">Occasion</div>
           <div className="flex flex-wrap gap-2">
             {OCCASIONS.map((o) => (
-              <button key={o} className={`px-3 h-10 rounded-full border ${occasion === o ? 'bg-blue-600 text-white' : 'bg-white'}`} aria-pressed={occasion === o} onClick={() => { setOccasion(o); console.info('ui_occasion_set', { occasion: o }) }}>{o}</button>
+              <Chip key={o} className={`${occasion === o ? 'bg-blue-600 text-white' : ''}`} aria-pressed={occasion === o} onClick={() => { setOccasion(o); console.info('ui_occasion_set', { occasion: o }) }}>{o}</Chip>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl shadow-sm p-3 bg-white border">
+        <Card>
           <div className="mb-2 text-sm font-medium">Vibe</div>
           <div className="flex flex-wrap gap-2">
             {VIBES.map((v) => (
-              <button key={v} className={`px-3 h-10 rounded-full border ${vibes.includes(v) ? 'bg-blue-600 text-white' : 'bg-white'}`} aria-pressed={vibes.includes(v)} onClick={() => toggleVibe(v)}>{v}</button>
+              <Chip key={v} className={`${vibes.includes(v) ? 'bg-blue-600 text-white' : ''}`} aria-pressed={vibes.includes(v)} onClick={() => toggleVibe(v)}>{v}</Chip>
             ))}
           </div>
           <div className="mt-2 text-xs text-gray-600">Up to 3</div>
-        </div>
+        </Card>
 
         <details className="rounded-2xl shadow-sm p-3 bg-white">
           <summary className="text-sm font-medium cursor-pointer">More options</summary>
@@ -183,13 +172,13 @@ export function DetailsScreen({ profile, onSpin, onRefine }: DetailsScreenProps)
         </details>
 
         <div className="space-y-2">
-          <button className="w-full rounded-full h-12 bg-blue-600 text-white" onClick={onSubmit}>Spin Gifts</button>
+          <Button className="w-full bg-blue-600 text-white" onClick={onSubmit}>Spin Gifts</Button>
           <button className="text-center w-full text-sm text-gray-600" onClick={onRefine}>Refine after results</button>
         </div>
       </div>
 
       {showToast && (
-        <div role="status" className="fixed bottom-6 inset-x-0 mx-auto w-max bg-gray-900 text-white px-3 py-2 rounded-full text-sm" onClick={() => setShowToast(null)}>{showToast}</div>
+        <Toast open onOpenChange={() => setShowToast(null)}>{showToast}</Toast>
       )}
     </div>
   )
