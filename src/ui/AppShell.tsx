@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react'
 import StartScreen from '../screens/StartScreen'
 import Questionnaire from '../screens/Questionnaire'
 import { SearchResults } from '../components/SearchResults'
+import ErrorBoundary from '../components/ui/ErrorBoundary'
 
 type Route =
   | { name: 'home' }
@@ -26,7 +27,9 @@ export function AppShell() {
 
   if (route.name === 'results') return (
     <div className="pt-16 px-4">
-      <SearchResults llmOutput={route.llmOutput} />
+      <ErrorBoundary>
+        <SearchResults llmOutput={route.llmOutput} />
+      </ErrorBoundary>
       <div className="mt-8 text-center">
         <button className="text-sm text-blue-600" onClick={() => setRoute({name: 'home'})}>Back to start</button>
       </div>
@@ -37,5 +40,4 @@ export function AppShell() {
 }
 
 export default AppShell
-
 

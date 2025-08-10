@@ -179,7 +179,7 @@ export function GiftFinder({ onAddBundleToCart, shopDomain, storefrontAccessToke
                   ✓ Matched: {results.diagnostics.matchedSignals.join(', ')}
                 </p>
               )}
-              {results.diagnostics.unmetConstraints?.length > 0 && (
+              {Array.isArray(results.diagnostics.unmetConstraints) && results.diagnostics.unmetConstraints.length > 0 && (
                 <p className="text-sm text-orange-700">
                   ⚠ Unmet: {results.diagnostics.unmetConstraints.join(', ')}
                 </p>

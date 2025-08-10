@@ -89,4 +89,3 @@ function DeckCard({ card, onLike, onDislike, onBuy, muted }: { card: Card; onLik
 
 export default SwipeDeck
 
-

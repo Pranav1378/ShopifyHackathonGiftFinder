@@ -54,10 +54,11 @@ export async function generateGiftBundles(request: GiftFinderRequest): Promise<G
 
     // Step 2: Search for candidate products
     const products = await searchCandidateProducts(intent, request.budget)
-    console.log(`📦 Found ${products.length} candidate products`)
+    const productList = Array.isArray(products) ? products : []
+    console.log(`📦 Found ${productList.length} candidate products`)
 
     // Step 3: Filter and score variants
-    const candidates = shopifyClient.filterAndScoreVariants(products, intent, request.budget)
+    const candidates = shopifyClient.filterAndScoreVariants(productList, intent, request.budget)
     console.log(`⭐ Scored ${candidates.length} candidate variants`)
 
     // Step 4: Assemble bundles

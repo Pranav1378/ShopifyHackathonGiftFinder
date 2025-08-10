@@ -1,8 +1,13 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useSearchProducts } from '../search/search'
-import { Card, Button, Chip } from '../ui/Playground'
+import { mockShopifyProducts } from '../mocks/shopifyMockData'
+import { Button, Chip } from '../ui/Playground'
 import type { QuerySpec } from '../search/types'
 import { incrementMany, getCount } from '../services/likeInsights'
+import { TinderDeck, DeckCard as TinderCardModel } from './ui/TinderDeck'
+import ErrorBoundary from './ui/ErrorBoundary'
+
+const USE_MINIS_HOOK = true
 
 // Parses LLM JSON like:
 // { "queryone": { "text": "tech gadgets under $50 holiday", "category": "electronics" }, ... }
@@ -49,18 +54,89 @@ export function buildDatasetFromLlmJson(raw: unknown): DatasetItem[] {
   return dataset
 }
 
-function Price({ product }: { product: any }) {
-  const amt = Number(product?.selectedVariant?.price?.amount ?? product?.price?.amount)
-  const currency = product?.selectedVariant?.price?.currencyCode ?? product?.price?.currencyCode
-  if (!Number.isFinite(amt)) return <span className="text-xs text-gray-500">—</span>
-  return <span className="text-sm font-medium">{currency ? `${currency} ` : '$'}{amt.toFixed(2)}</span>
+// Price display is now handled inside the TinderDeck card rendering via getDisplayPrice
+
+function getVariantNodes(product: any): any[] {
+  const nodes = product?.variants?.nodes
+  if (Array.isArray(nodes)) return nodes
+  if (Array.isArray(product?.variants)) return product.variants
+  return []
 }
 
-function getMinPrice(p: any): number | null {
-  const variantAmt = Number(p?.selectedVariant?.price?.amount)
-  if (!Number.isNaN(variantAmt)) return variantAmt
-  const productAmt = Number(p?.price?.amount)
-  return Number.isNaN(productAmt) ? null : productAmt
+function isVariantPurchasable(variant: any): boolean {
+  const flags = [
+    Boolean(variant?.availableForSale),
+    Boolean(variant?.available),
+    Boolean(variant?.inStock),
+    Number(variant?.quantityAvailable) > 0,
+  ]
+  return flags.some(Boolean)
+}
+
+function readVariantPrice(variant: any): { amount: number | null; currency: string | null } {
+  const v2Amt = Number(variant?.priceV2?.amount)
+  const v2Cur = variant?.priceV2?.currencyCode ?? null
+  if (!Number.isNaN(v2Amt)) return { amount: v2Amt, currency: v2Cur }
+  const amt = Number(variant?.price?.amount)
+  const cur = variant?.price?.currencyCode ?? null
+  if (!Number.isNaN(amt)) return { amount: amt, currency: cur }
+  return { amount: null, currency: null }
+}
+
+function getMinPurchasableVariantPrice(product: any, budgetCurrency: string | null): { amount: number | null; currency: string | null } {
+  const variants = getVariantNodes(product)
+  const purchasable = variants.filter(isVariantPurchasable)
+  const candidatePrices = purchasable
+    .map(readVariantPrice)
+    .filter((p) => p.amount != null && Number.isFinite(p.amount as number)) as { amount: number; currency: string | null }[]
+
+  const inBudgetCurrency = budgetCurrency
+    ? candidatePrices.filter((p) => (p.currency ?? budgetCurrency) === budgetCurrency)
+    : candidatePrices
+
+  const pickMin = (arr: { amount: number; currency: string | null }[]) =>
+    arr.reduce<{ amount: number; currency: string | null } | null>((acc, cur) => {
+      if (!acc || cur.amount < acc.amount) return cur
+      return acc
+    }, null)
+
+  let chosen = pickMin(inBudgetCurrency)
+
+  if (!chosen) {
+    // Fallback to minVariantPrice from priceRange if available and currency matches (if specified)
+    const rangeAmt = Number(product?.priceRange?.minVariantPrice?.amount)
+    const rangeCur = product?.priceRange?.minVariantPrice?.currencyCode ?? null
+    const okCurrency = budgetCurrency ? (rangeCur ?? budgetCurrency) === budgetCurrency : true
+    if (!Number.isNaN(rangeAmt) && okCurrency) {
+      chosen = { amount: rangeAmt, currency: rangeCur }
+    }
+  }
+
+  return chosen ?? { amount: null, currency: null }
+}
+
+function getDisplayPrice(product: any): { amount: number | null; currency: string | null } {
+  // Display price should always show something if possible, independent of budget currency
+  const variants = getVariantNodes(product)
+  const purchasable = variants.filter(isVariantPurchasable)
+  const candidatePrices = (purchasable.length > 0 ? purchasable : variants)
+    .map(readVariantPrice)
+    .filter((p) => p.amount != null && Number.isFinite(p.amount as number)) as { amount: number; currency: string | null }[]
+
+  if (candidatePrices.length > 0) {
+    const min = candidatePrices.reduce((acc, cur) => (!acc || cur.amount < acc.amount ? cur : acc))
+    return min
+  }
+  const rangeAmt = Number(product?.priceRange?.minVariantPrice?.amount)
+  const rangeCur = product?.priceRange?.minVariantPrice?.currencyCode ?? null
+  if (!Number.isNaN(rangeAmt)) return { amount: rangeAmt, currency: rangeCur }
+  const productAmt = Number(product?.price?.amount)
+  const productCur = product?.price?.currencyCode ?? null
+  if (!Number.isNaN(productAmt)) return { amount: productAmt, currency: productCur }
+  const variantAmt = Number(product?.selectedVariant?.price?.amount)
+  const variantCur = product?.selectedVariant?.price?.currencyCode ?? null
+  if (!Number.isNaN(variantAmt)) return { amount: variantAmt, currency: variantCur }
+  return { amount: null, currency: null }
 }
 
 function sample<T>(arr: T[], count: number): T[] {
@@ -73,25 +149,24 @@ function sample<T>(arr: T[], count: number): T[] {
   return copy.slice(0, count)
 }
 
-function SingleQueryResults({ spec, budget }: { spec: QuerySpec; budget: number | null }) {
+function SingleQueryResultsMinis({ spec, budget }: { spec: QuerySpec; budget: number | null }) {
   const { products, loading, error, hasNextPage, fetchMore } = useSearchProducts({ dataset: [spec] })
+  const budgetCurrencyCode: string | null = 'USD'
   const filtered = useMemo(() => {
     const list = products ?? []
     if (budget == null) return list
     return list.filter((p: any) => {
-      const amt = getMinPrice(p)
-      return amt != null && amt <= budget
+      const { amount, currency } = getMinPurchasableVariantPrice(p, budgetCurrencyCode)
+      if (amount == null) return false
+      if (budgetCurrencyCode && currency && currency !== budgetCurrencyCode) return false
+      return amount <= budget
     })
   }, [products, budget])
 
   const [sampled, setSampled] = useState<any[]>([])
-  const [cursor, setCursor] = useState(0)
-  const [liked, setLiked] = useState<'like' | 'dislike' | null>(null)
   useEffect(() => {
     const desired = Math.min(3, filtered.length)
     setSampled(sample(filtered, desired))
-    setCursor(0)
-    setLiked(null)
   }, [filtered])
 
   // Ensure we end up with 3 items if possible by paging more
@@ -104,45 +179,112 @@ function SingleQueryResults({ spec, budget }: { spec: QuerySpec; budget: number 
   const categories = spec.categories.length > 0 ? spec.categories : ['general']
   const onLike = useCallback(() => {
     incrementMany(categories, 1)
-    setLiked('like')
   }, [categories])
   const onDislike = useCallback(() => {
     incrementMany(categories, -1)
-    setLiked('dislike')
   }, [categories])
 
-  if (error) return <div className="text-sm text-red-600">{String(error.message ?? error)}</div>
-  if (loading) return <div className="text-sm text-gray-500">Loading…</div>
-  if (!filtered || filtered.length === 0) return <div className="text-xs text-gray-500">No products found.</div>
-  const p = sampled[cursor]
-  const image = p?.featuredImage?.url ?? p?.images?.[0]?.url
+  // Fallback to mock data if hook errors
+  const effectiveProducts = error ? mockShopifyProducts : filtered
+  if (loading && !error) return <div className="text-sm text-gray-500">Loading…</div>
+  if (!effectiveProducts || effectiveProducts.length === 0) return <div className="text-xs text-gray-500">No products found.</div>
+  const toDeckCards: TinderCardModel[] = useMemo(() => {
+    const source = error ? sample(mockShopifyProducts as any[], 3) : sampled
+    return source.map((p: any) => {
+      const { amount, currency } = getDisplayPrice(p)
+      const image = p?.featuredImage?.url ?? p?.images?.[0]?.url
+      const priceLabel = amount != null && Number.isFinite(amount) ? `${currency ? `${currency} ` : '$'}${amount.toFixed(2)}` : ''
+      return {
+        id: String(p?.id ?? Math.random()),
+        title: String(p?.title ?? 'Untitled'),
+        priceLabel,
+        imageUrl: String(image ?? ''),
+      }
+    })
+  }, [sampled])
   return (
     <div className="space-y-3">
-      <Card>
-        <div className="flex gap-3">
-          {image ? (
-            <img src={image} alt={p?.featuredImage?.altText ?? p?.title ?? ''} className="w-24 h-24 rounded-md object-cover flex-shrink-0" />
-          ) : (
-            <div className="w-24 h-24 rounded-md bg-gray-100 flex-shrink-0" />
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium line-clamp-2">{p?.title ?? 'Untitled'}</div>
-            <div className="mt-1 text-xs text-gray-500 line-clamp-2">{p?.vendor ?? ''}</div>
-            <div className="mt-2"><Price product={p} /></div>
-          </div>
-        </div>
-      </Card>
-      <div className="flex items-center justify-between">
-        <div className="text-[11px] text-gray-600">Item {Math.min(cursor + 1, sampled.length)} of {Math.max(1, sampled.length)}</div>
-        <div className="flex gap-2">
-          <Button className="px-3" onClick={() => setCursor((c) => Math.max(0, c - 1))} disabled={cursor === 0}>Back</Button>
-          <Button className="px-3" onClick={() => setCursor((c) => Math.min(sampled.length - 1, c + 1))} disabled={cursor >= sampled.length - 1}>Next</Button>
-        </div>
+      <TinderDeck
+        cards={toDeckCards}
+        onSwipeRight={() => {
+          console.log('Swiped right!');
+          onLike();
+        }}
+        onSwipeLeft={() => {
+          console.log('Swiped left!');
+          onDislike();
+        }}
+        onEnd={() => { 
+          console.log('Deck finished!');
+        }}
+      />
+      <div className="text-[10px] text-gray-500">
+        {categories.map((c) => (
+          <span key={c} className="mr-2">{c}: {getCount(c)}</span>
+        ))}
       </div>
-      <div className="flex gap-2">
-        <Button className={`flex-1 ${liked === 'like' ? 'opacity-60' : ''}`} onClick={onLike}>Like</Button>
-        <Button className={`flex-1 ${liked === 'dislike' ? 'opacity-60' : ''}`} onClick={onDislike}>Dislike</Button>
-      </div>
+    </div>
+  )
+}
+
+function SingleQueryResultsMock({ spec, budget }: { spec: QuerySpec; budget: number | null }) {
+  const budgetCurrencyCode: string | null = 'USD'
+  const filtered = useMemo(() => {
+    const list = mockShopifyProducts as any[]
+    if (budget == null) return list
+    return list.filter((p: any) => {
+      const { amount, currency } = getMinPurchasableVariantPrice(p, budgetCurrencyCode)
+      if (amount == null) return false
+      if (budgetCurrencyCode && currency && currency !== budgetCurrencyCode) return false
+      return amount <= budget
+    })
+  }, [budget])
+
+  const [sampled, setSampled] = useState<any[]>([])
+  useEffect(() => {
+    const desired = Math.min(3, filtered.length)
+    setSampled(sample(filtered, desired))
+  }, [filtered])
+
+  const categories = spec.categories.length > 0 ? spec.categories : ['general']
+  const onLike = useCallback(() => {
+    incrementMany(categories, 1)
+  }, [categories])
+  const onDislike = useCallback(() => {
+    incrementMany(categories, -1)
+  }, [categories])
+
+  if (!filtered || filtered.length === 0) return <div className="text-xs text-gray-500">No products found.</div>
+  const toDeckCards: TinderCardModel[] = useMemo(() => {
+    return sampled.map((p: any) => {
+      const { amount, currency } = getDisplayPrice(p)
+      const image = p?.featuredImage?.url ?? p?.images?.[0]?.url
+      const priceLabel = amount != null && Number.isFinite(amount) ? `${currency ? `${currency} ` : '$'}${amount.toFixed(2)}` : ''
+      return {
+        id: String(p?.id ?? Math.random()),
+        title: String(p?.title ?? 'Untitled'),
+        priceLabel,
+        imageUrl: String(image ?? ''),
+      }
+    })
+  }, [sampled])
+
+  return (
+    <div className="space-y-3">
+      <TinderDeck
+        cards={toDeckCards}
+        onSwipeRight={() => {
+          console.log('Swiped right!');
+          onLike();
+        }}
+        onSwipeLeft={() => {
+          console.log('Swiped left!');
+          onDislike();
+        }}
+        onEnd={() => { 
+          console.log('Deck finished!');
+        }}
+      />
       <div className="text-[10px] text-gray-500">
         {categories.map((c) => (
           <span key={c} className="mr-2">{c}: {getCount(c)}</span>
@@ -180,9 +322,14 @@ export function SearchResults({ llmOutput }: { llmOutput: unknown }) {
         </div>
       </div>
       <div className="text-sm font-medium">{current.spec.query}</div>
-      <SingleQueryResults spec={current.spec} budget={current.budget} />
+      {USE_MINIS_HOOK ? (
+        <ErrorBoundary fallback={<SingleQueryResultsMock spec={current.spec} budget={current.budget} />}>
+          <SingleQueryResultsMinis spec={current.spec} budget={current.budget} />
+        </ErrorBoundary>
+      ) : (
+        <SingleQueryResultsMock spec={current.spec} budget={current.budget} />
+      )}
     </div>
   )
 }
-
 

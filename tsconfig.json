@@ -6,9 +6,9 @@
     "esModuleInterop": true,
     "isolatedModules": false,
     "jsx": "react-jsx",
-    "lib": ["es2019", "dom"],
-    "noUnusedParameters": true,
-    "noUnusedLocals": true,
+    "lib": ["es2021", "dom"],
+    "noUnusedParameters": false,
+    "noUnusedLocals": false,
     "moduleResolution": "bundler",
     "module": "ESNext",
     "noEmit": true,
@@ -27,7 +27,11 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "useUnknownInCatchVariables": false
+    "useUnknownInCatchVariables": false,
+    "baseUrl": ".",
+    "paths": {
+      "@shopify/shop-minis-react": ["src/types/shop-minis-react-shim.d.ts"]
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

@@ -106,11 +106,12 @@ export function useSearchProducts(options: SearchProductsOptions): SearchProduct
   const resolvedIndex = resolveIndex(dataset, index, byQuery)
   const spec = resolvedIndex >= 0 ? dataset?.[resolvedIndex] : undefined
   const built: BuiltSearchQuery = spec ? buildProductSearchQuery(spec) : {queryString: ''}
+  // Always provide a non-empty query to avoid conditional hook paths inside the SDK
+  const queryString = (built.queryString || '').trim() || 'gift'
 
   const {products, loading, error, refetch, hasNextPage, fetchMore} = useProductSearch({
-    query: built.queryString,
+    query: queryString,
     includeSensitive: false,
-    skip: !built.queryString,
   })
 
   return {

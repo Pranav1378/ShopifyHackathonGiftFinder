@@ -11,7 +11,7 @@ export default defineConfig(({mode}) => {
     root: '.',
     plugins: [react(), tailwindcss()],
     optimizeDeps: {
-      include: ['@shopify/shop-minis-react'],
+      include: ['@shopify/shop-minis-react', 'react-tinder-card'],
     },
     define: {
       'process.env.FAL_KEY': JSON.stringify(falKey),
